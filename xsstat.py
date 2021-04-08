@@ -16,7 +16,9 @@ class Player:
         self.name = self.get_name()
 
     def __str__(self):
-        return f"{self.ping:>3} {self.get_name()[:32]:32} {self.time_or_spec()}"
+        return (
+            f"{self.ping:>3} {self.get_name()[:32]:32} {self.time_or_spec():>9}"
+        )
 
     def is_spectating(self):
         if self.score == -666:
@@ -34,7 +36,7 @@ class Player:
         elif self.score == 0:
             return "Running"
         else:
-            padded_time = f"{self.score:05}"
+            padded_time = f"{self.score:0>5}"
             return f"{padded_time[:-4]}:{padded_time[-4:-2]}.{padded_time[-2:]}"
 
     def get_name(self):
