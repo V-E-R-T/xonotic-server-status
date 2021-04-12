@@ -51,14 +51,20 @@ class Player:
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
-
-        color_code = r"\^x[0-9a-fA-F]{3}"
-        cd_code = r"\^\d"
-
-        no_color_codes = re.sub(color_code, "", unicode_name)
-        no_codes = re.sub(cd_code, "", no_color_codes)
-
+        no_codes = remove_cd_code(remove_color_code(unicode_name))
         return no_codes
+
+
+def remove_color_code(string):
+    return remove_regex_fom_string(r"\^x[0-9a-fA-F]{3}", string)
+
+
+def remove_cd_code(string):
+    return remove_regex_fom_string(r"\^\d", string)
+
+
+def remove_regex_fom_string(regex, string):
+    return re.sub(regex, "", string)
 
 
 def total_hours_from_seconds(seconds):
