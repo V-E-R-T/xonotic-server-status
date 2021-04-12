@@ -17,7 +17,7 @@ class Player:
 
     def __str__(self):
         return (
-            f"{self.ping:>3} {self.get_name()[:32]:32} {self.time_or_spec():>9}"
+            f"{self.ping:>3} {self.get_name()[:32]:32} {self.time_or_spec():>10}"
         )
 
     def is_spectating(self):
@@ -39,16 +39,15 @@ class Player:
             return f"0:00.{self.score:0>2}"
         else:
             score_seconds = int(str(self.score)[:-2])
-            min = math.floor(score_seconds / 60)
-            sec = f"{score_seconds % 60:0>2}"
-            ms = str(self.score)[-2:]
+            hours = total_hours_from_seconds(score_seconds)
+            mins = minutes_from_seconds(score_seconds)
+            secs = seconds_from_seconds(score_seconds)
+            ms = int(str(self.score)[-2:])
 
-            if min >= 60:
-                hour = math.floor(min / 60)
-                min = f"{min % 60:0>2}"
-                return f"{hour}:{min}:{sec}.{ms}"
+            if hours > 0:
+                return f"{hours}:{mins:0>2}:{secs:0>2}.{ms:0>2}"
             else:
-                return f"{min}:{sec}.{ms}"
+                return f"{mins}:{secs:0>2}.{ms:0>2}"
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
@@ -60,6 +59,25 @@ class Player:
         no_codes = re.sub(cd_code, "", no_color_codes)
 
         return no_codes
+
+
+def total_hours_from_seconds(seconds):
+    return math.floor(seconds / 3600)
+
+
+def total_minutes_from_seconds(seconds):
+    return math.floor(seconds / 60)
+
+
+def seconds_from_seconds(seconds):
+    return seconds % 60
+
+
+def minutes_from_seconds(seconds):
+    return (
+        total_minutes_from_seconds(seconds) -
+        (60 * total_hours_from_seconds(seconds))
+    )
 
 
 def dp_protocol_parse(data):
