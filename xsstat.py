@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import re, signal, socket, sys
+import re, signal, socket, sys, math
 
 TIMEOUT = 6
 XONOPINGBIN = bytes.fromhex("ffffffff676574737461747573")
@@ -35,9 +35,20 @@ class Player:
             return "Spectator"
         elif self.score == 0:
             return "Running"
+        elif len(str(self.score)) <= 2:
+            return f"0:00.{self.score:0>2}"
         else:
-            padded_time = f"{self.score:0>5}"
-            return f"{padded_time[:-4]}:{padded_time[-4:-2]}.{padded_time[-2:]}"
+            score_seconds = int(str(self.score)[:-2])
+            min = math.floor(score_seconds / 60)
+            sec = f"{score_seconds % 60:0>2}"
+            ms = str(self.score)[-2:]
+
+            if min >= 60:
+                hour = math.floor(min / 60)
+                min = f"{min % 60:0>2}"
+                return f"{hour}:{min}:{sec}.{ms}"
+            else:
+                return f"{min}:{sec}.{ms}"
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
