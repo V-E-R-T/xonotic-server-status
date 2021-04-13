@@ -3,8 +3,10 @@
 import re, signal, socket, sys, math
 
 TIMEOUT = 6
-XONOPINGBIN = bytes.fromhex("ffffffff676574737461747573")
-
+GET_STATUS = bytes.fromhex("ffffffff676574737461747573")
+CENTISECOND_DIGITS = 2
+SECONDS_IN_A_MINUTE = 60
+SECONDS_IN_AN_HOUR = 3600
 
 class Player:
     'A player object, easier to work with'
@@ -23,36 +25,43 @@ class Player:
     def is_spectating(self):
         if self.score == -666:
             return True
-        return False
+        else:
+            return False
+
+    def zero_score(self):
+        if self.score == 0:
+            return True
+        else:
+            return False
 
     def score_or_spec(self):
         if self.is_spectating():
             return "Spectator"
-        return self.score
+        else:
+            return self.score
 
     def time_or_spec(self):
         if self.is_spectating():
             return "Spectator"
-        elif self.score == 0:
+        elif self.zero_score():
             return "Running"
-        elif len(str(self.score)) <= 2:
+        elif len(str(self.score)) <= CENTISECOND_DIGITS:
             return f"0:00.{self.score:0>2}"
         else:
-            score_seconds = int(str(self.score)[:-2])
-            hours = total_hours_from_seconds(score_seconds)
-            mins = minutes_from_seconds(score_seconds)
-            secs = seconds_from_seconds(score_seconds)
-            ms = int(str(self.score)[-2:])
+            total_seconds = int(str(self.score)[:-CENTISECOND_DIGITS])
+            hours = total_hours_from_seconds(total_seconds)
+            mins = minutes_from_seconds(total_seconds)
+            secs = seconds_from_seconds(total_seconds)
+            cs = int(str(self.score)[-CENTISECOND_DIGITS:])
 
             if hours > 0:
-                return f"{hours}:{mins:0>2}:{secs:0>2}.{ms:0>2}"
+                return f"{hours}:{mins:0>2}:{secs:0>2}.{cs:0>2}"
             else:
-                return f"{mins}:{secs:0>2}.{ms:0>2}"
+                return f"{mins}:{secs:0>2}.{cs:0>2}"
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
-        no_codes = remove_cd_code(remove_color_code(unicode_name))
-        return no_codes
+        return remove_cd_code(remove_color_code(unicode_name))
 
 
 def remove_color_code(string):
@@ -68,15 +77,18 @@ def remove_regex_fom_string(regex, string):
 
 
 def total_hours_from_seconds(seconds):
-    return math.floor(seconds / 3600)
+    global SECONDS_IN_AN_HOUR
+    return math.floor(seconds / SECONDS_IN_AN_HOUR)
 
 
 def total_minutes_from_seconds(seconds):
-    return math.floor(seconds / 60)
+    global SECONDS_IN_A_MINUTE
+    return math.floor(seconds / SECONDS_IN_A_MINUTE)
 
 
 def seconds_from_seconds(seconds):
-    return seconds % 60
+    global SECONDS_IN_A_MINUTE
+    return seconds % SECONDS_IN_A_MINUTE
 
 
 def minutes_from_seconds(seconds):
@@ -87,7 +99,6 @@ def minutes_from_seconds(seconds):
 
 
 def dp_protocol_parse(data):
-
     players = []
     data_parts = data.rsplit("\n".encode())
 
@@ -118,7 +129,7 @@ def dp_protocol_parse(data):
     return info
 
 
-def handler(signum, frame):
+def timeout_handler(signum, frame):
     raise TimeoutError(
         f"Timed out after waiting {TIMEOUT} seconds for a response"
     )
@@ -132,9 +143,9 @@ def ping(host="127.0.0.1", uport=26000):
             raise ValueError
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(XONOPINGBIN, (host, port))
+        s.sendto(GET_STATUS, (host, port))
 
-        signal.signal(signal.SIGALRM, handler)
+        signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(TIMEOUT)
 
         while True:
