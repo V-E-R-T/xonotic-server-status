@@ -28,7 +28,7 @@ class Player:
         else:
             return False
 
-    def zero_score(self):
+    def has_zero_score(self):
         if self.score == 0:
             return True
         else:
@@ -43,7 +43,7 @@ class Player:
     def time_or_spec(self):
         if self.is_spectating():
             return "Spectator"
-        elif self.zero_score():
+        elif self.has_zero_score():
             return "Running"
         else:
             return get_time_from_score(self.score)
@@ -62,12 +62,11 @@ def get_time_from_score(score):
 
 
 def score_to_time_dict(score):
-    time = {}
     total_seconds = int(str(score)[:-CENTISECOND_DIGITS])
-    time['hours'] = total_hours_from_seconds(total_seconds)
-    time['mins'] = minutes_from_seconds(total_seconds)
-    time['secs'] = seconds_from_seconds(total_seconds)
-    time['cs'] = int(str(score)[-CENTISECOND_DIGITS:])
+    time = {'hours': total_hours_from_seconds(total_seconds),
+        'mins': minutes_from_seconds(total_seconds),
+        'secs': seconds_from_seconds(total_seconds),
+        'cs': int(str(score)[-CENTISECOND_DIGITS:])}
     return time
 
 
@@ -105,7 +104,7 @@ def minutes_from_seconds(seconds):
     )
 
 
-def dp_protocol_parse(data):
+def parse_status_response(data):
     data_parts = data.rsplit("\n".encode())
     info = parse_server_info_data(data_parts[1])
     info['status_response'] = data_parts[0]
@@ -156,7 +155,7 @@ def ping(host="127.0.0.1", uport=26000):
             data, addr = s.recvfrom(1024)
 
             if addr[0] == host:
-                return dp_protocol_parse(data)
+                return parse_status_response(data)
 
     except ValueError:
         print("Port must be an integer value in range 0-65535")
