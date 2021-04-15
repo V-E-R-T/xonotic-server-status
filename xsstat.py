@@ -106,34 +106,31 @@ def minutes_from_seconds(seconds):
 
 
 def dp_protocol_parse(data):
-    players = []
     data_parts = data.rsplit("\n".encode())
+    info = parse_server_info_data(data_parts[1])
+    info['status_response'] = data_parts[0]
+    info['players'] = parse_players_data(data_parts[2:-1])
+    return info
 
-    info = {
-        'status_response': data_parts[0],
-        'players_data_array': data_parts[2:-1]
-    }
 
-    server_info_data = data_parts[1]
-    key_value_data_pairs = server_info_data.rsplit("\\".encode())
-
+def parse_server_info_data(svr_data):
+    key_value_data_pairs = svr_data.rsplit("\\".encode())
+    svr_info = {}
     for i in range(2, len(key_value_data_pairs), 2):
-        info[key_value_data_pairs[i-1].decode("utf-8", "ignore")] = \
+        svr_info[key_value_data_pairs[i-1].decode("utf-8", "ignore")] = \
             key_value_data_pairs[i]
+    return svr_info
 
-    for player_data in info['players_data_array']:
+
+def parse_players_data(players_data):
+    players = []
+    for player_data in players_data:
         player_data_array = player_data.rsplit(" ".encode())
         raw_name = player_data.rsplit('"'.encode())[1]
-
         player = Player(
-                int(player_data_array[0]), int(player_data_array[1]),
-                raw_name)
-
+            int(player_data_array[0]), int(player_data_array[1]), raw_name)
         players.append(player)
-
-    info['players'] = players
-
-    return info
+    return players
 
 
 def timeout_handler(signum, frame):
