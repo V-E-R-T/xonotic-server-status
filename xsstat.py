@@ -45,23 +45,30 @@ class Player:
             return "Spectator"
         elif self.zero_score():
             return "Running"
-        elif len(str(self.score)) <= CENTISECOND_DIGITS:
-            return f"0:00.{self.score:0>2}"
         else:
-            total_seconds = int(str(self.score)[:-CENTISECOND_DIGITS])
-            hours = total_hours_from_seconds(total_seconds)
-            mins = minutes_from_seconds(total_seconds)
-            secs = seconds_from_seconds(total_seconds)
-            cs = int(str(self.score)[-CENTISECOND_DIGITS:])
-
-            if hours > 0:
-                return f"{hours}:{mins:0>2}:{secs:0>2}.{cs:0>2}"
-            else:
-                return f"{mins}:{secs:0>2}.{cs:0>2}"
+            return get_time_from_score(self.score)
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
         return remove_cd_code(remove_color_code(unicode_name))
+
+
+def get_time_from_score(score):
+    t = score_to_time_dict(score)
+    if t['hours'] > 0:
+        return f"{t['hours']}:{t['mins']:0>2}:{t['secs']:0>2}.{t['cs']:0>2}"
+    else:
+        return f"{t['mins']}:{t['secs']:0>2}.{t['cs']:0>2}"
+
+
+def score_to_time_dict(score):
+    time = {}
+    total_seconds = int(str(score)[:-CENTISECOND_DIGITS])
+    time['hours'] = total_hours_from_seconds(total_seconds)
+    time['mins'] = minutes_from_seconds(total_seconds)
+    time['secs'] = seconds_from_seconds(total_seconds)
+    time['cs'] = int(str(score)[-CENTISECOND_DIGITS:])
+    return time
 
 
 def remove_color_code(string):
@@ -167,7 +174,7 @@ def display(info):
     print(info['hostname'].decode())
     print(info['mapname'].decode())
 
-    for player in info['players']:
+    for player in sorted(info['players'], key=lambda x: x.score):
         print(player)
 
 
