@@ -8,6 +8,7 @@ CENTISECOND_DIGITS = 2
 SECONDS_IN_A_MINUTE = 60
 SECONDS_IN_AN_HOUR = 3600
 
+
 class Player:
     'A player object, easier to work with'
 
@@ -18,9 +19,7 @@ class Player:
         self.name = self.get_name()
 
     def __str__(self):
-        return (
-            f"{self.ping:>3} {self.get_name()[:32]:32} {self.time_or_spec():>10}"
-        )
+        return self.columned_ping_name_score()
 
     def is_spectating(self):
         if self.score == -666:
@@ -50,7 +49,15 @@ class Player:
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
-        return remove_cd_code(remove_color_code(unicode_name))
+        return clean_escape_characters(unicode_name)
+
+    def columned_ping_name_score(self):
+        return (f"{self.ping:>3} {self.get_name()[:32]:32} "
+                f"{self.score_or_spec():>10}")
+
+    def columned_ping_name_time(self):
+        return (f"{self.ping:>3} {self.get_name()[:32]:32} "
+                f"{self.time_or_spec():>10}")
 
 
 def get_time_from_score(score):
@@ -63,11 +70,14 @@ def get_time_from_score(score):
 
 def score_to_time_dict(score):
     total_seconds = int(str(score)[:-CENTISECOND_DIGITS])
-    time = {'hours': total_hours_from_seconds(total_seconds),
-        'mins': minutes_from_seconds(total_seconds),
-        'secs': seconds_from_seconds(total_seconds),
-        'cs': int(str(score)[-CENTISECOND_DIGITS:])}
-    return time
+    return {'hours': total_hours_from_seconds(total_seconds),
+            'mins': minutes_from_seconds(total_seconds),
+            'secs': seconds_from_seconds(total_seconds),
+            'cs': int(str(score)[-CENTISECOND_DIGITS:])}
+
+
+def clean_escape_characters(string):
+    return replace_escaped_caret(remove_cd_code(remove_color_code(string)))
 
 
 def remove_color_code(string):
@@ -80,6 +90,10 @@ def remove_cd_code(string):
 
 def remove_regex_fom_string(regex, string):
     return re.sub(regex, "", string)
+
+
+def replace_escaped_caret(string):
+    return re.sub(r"\^\^", "^", string)
 
 
 def total_hours_from_seconds(seconds):
@@ -109,6 +123,7 @@ def parse_status_response(data):
     info = parse_server_info_data(data_parts[1])
     info['status_response'] = data_parts[0]
     info['players'] = parse_players_data(data_parts[2:-1])
+    info.update(parse_qcstatus_data(info['qcstatus']))
     return info
 
 
@@ -130,6 +145,13 @@ def parse_players_data(players_data):
             int(player_data_array[0]), int(player_data_array[1]), raw_name)
         players.append(player)
     return players
+
+
+def parse_qcstatus_data(qcstatus_data):
+    status_parts = qcstatus_data.split(":".encode())
+    return {'gametype': status_parts[0].decode(),
+            'serverversion': status_parts[1].decode(),
+            'mod': status_parts[5].decode()[1:]}
 
 
 def timeout_handler(signum, frame):
@@ -166,12 +188,16 @@ def ping(host="127.0.0.1", uport=26000):
 
 
 def display(info):
-    
     print(info['hostname'].decode())
     print(info['mapname'].decode())
 
-    for player in sorted(info['players'], key=lambda x: x.score):
-        print(player)
+    if info['gametype'] == "cts":
+        for player in sorted(info['players'], key=lambda p: p.score):
+            print(player.columned_ping_name_time())
+    else:
+        for player in sorted(info['players'], key=lambda p: p.score,
+                             reverse=True):
+            print(player)
 
 
 def __main__():
@@ -183,9 +209,9 @@ def __main__():
 
     if len(sys.argv) > 2:
         port = sys.argv[2]
-            
+
     display(ping(host, port))
 
 
 if __name__ == "__main__":
-            __main__()
+    __main__()
