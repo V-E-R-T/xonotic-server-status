@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-import re, signal, socket, sys, math
+import re
+import signal
+import socket
+import sys
+import math
 
 TIMEOUT = 6
 GET_STATUS = bytes.fromhex("ffffffff676574737461747573")
@@ -49,7 +53,7 @@ class Player:
 
     def get_name(self):
         unicode_name = self.raw_name.decode("utf-8", "ignore")
-        return clean_escape_characters(unicode_name)
+        return parse_escape_chars_and_remove_color_codes(unicode_name)
 
     def columned_ping_name_score(self):
         return (f"{self.ping:>3} {self.get_name()[:32]:32} "
@@ -76,24 +80,8 @@ def score_to_time_dict(score):
             'cs': int(str(score)[-CENTISECOND_DIGITS:])}
 
 
-def clean_escape_characters(string):
-    return replace_escaped_caret(remove_cd_code(remove_color_code(string)))
-
-
-def remove_color_code(string):
-    return remove_regex_fom_string(r"\^x[0-9a-fA-F]{3}", string)
-
-
-def remove_cd_code(string):
-    return remove_regex_fom_string(r"\^\d", string)
-
-
-def remove_regex_fom_string(regex, string):
-    return re.sub(regex, "", string)
-
-
-def replace_escaped_caret(string):
-    return re.sub(r"\^\^", "^", string)
+def parse_escape_chars_and_remove_color_codes(string):
+    return re.sub(r"\^(\^)|\^\d|\^x[0-9a-fA-F]{3}", r"\1", string)
 
 
 def total_hours_from_seconds(seconds):
