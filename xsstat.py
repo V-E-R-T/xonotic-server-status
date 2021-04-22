@@ -18,12 +18,15 @@ MINUTES_IN_A_HOUR = 60
 class Player:
     'A player object, easier to work with'
 
-    def __init__(self, raw_score, ping, raw_name):
-        self.raw_score = raw_score
-        self.score = int(float(raw_score))
-        self.ping = ping
-        self.raw_name = raw_name
+    def __init__(self, score, ping, name, team):
+        self.raw_score = score
+        self.raw_ping = ping
+        self.raw_name = name
+        self.raw_team = team
+        self.score = int(float(score))
+        self.ping = int(ping)
         self.name = self.get_name()
+        self.team = self.get_team()
 
     def __str__(self):
         return self.columned_ping_name_score()
@@ -57,10 +60,20 @@ class Player:
     def get_name(self):
         return parse_escape_chars_and_remove_color_codes(self.raw_name)
 
+    def get_team(self):
+        if self.raw_team == '' or self.raw_team == '0':
+            return "-"
+        elif self.raw_team == '1':
+            return "Red"
+        elif self.raw_team == '2':
+            return "Blue"
+        else:
+            return self.raw_team
+
     def columned_ping_name_score(self):
         off = count_wide_chars(self.get_name())
         return (f"{self.ping:>3} {self.get_name()[:32]:<{32 - off}} "
-                f"{self.score_or_spec():>10}")
+                f"{self.score_or_spec():>10} {self.team:<}")
 
     def columned_ping_name_time(self):
         off = count_wide_chars(self.get_name())
@@ -139,10 +152,10 @@ def parse_server_info_data(svr_data):
 def parse_players_data(players_data):
     players = []
     for player_data in players_data:
-        player_data_array = player_data.rsplit(" ".encode())
-        raw_name = player_data.rsplit('"'.encode())[1]
-        player = Player(player_data_array[0].decode(),
-                        int(player_data_array[1]), raw_name.decode())
+        info, raw_name, *empty = player_data.rsplit('"'.encode())
+        score, ping, team, *other = info.rsplit(" ".encode())
+        player = Player(score.decode(), ping.decode(), raw_name.decode(),
+                        team.decode())
         players.append(player)
     return players
 
