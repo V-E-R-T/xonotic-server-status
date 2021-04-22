@@ -4,7 +4,6 @@ import re
 import signal
 import socket
 import sys
-import math
 import unicodedata
 
 TIMEOUT = 6
@@ -111,12 +110,12 @@ def parse_escape_chars_and_remove_color_codes(string):
 
 def total_hours_from_seconds(seconds):
     global SECONDS_IN_AN_HOUR
-    return math.floor(seconds / SECONDS_IN_AN_HOUR)
+    return seconds // SECONDS_IN_AN_HOUR
 
 
 def total_minutes_from_seconds(seconds):
     global SECONDS_IN_A_MINUTE
-    return math.floor(seconds / SECONDS_IN_A_MINUTE)
+    return seconds // SECONDS_IN_A_MINUTE
 
 
 def seconds_from_seconds(seconds):
