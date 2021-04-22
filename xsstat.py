@@ -5,19 +5,22 @@ import signal
 import socket
 import sys
 import math
+import unicodedata
 
 TIMEOUT = 6
 GET_STATUS = bytes.fromhex("ffffffff676574737461747573")
 CENTISECOND_DIGITS = 2
 SECONDS_IN_A_MINUTE = 60
 SECONDS_IN_AN_HOUR = 3600
+MINUTES_IN_A_HOUR = 60
 
 
 class Player:
     'A player object, easier to work with'
 
-    def __init__(self, score, ping, raw_name):
-        self.score = score
+    def __init__(self, raw_score, ping, raw_name):
+        self.raw_score = raw_score
+        self.score = int(float(raw_score))
         self.ping = ping
         self.raw_name = raw_name
         self.name = self.get_name()
@@ -52,16 +55,25 @@ class Player:
             return get_time_from_score(self.score)
 
     def get_name(self):
-        unicode_name = self.raw_name.decode("utf-8", "ignore")
-        return parse_escape_chars_and_remove_color_codes(unicode_name)
+        return parse_escape_chars_and_remove_color_codes(self.raw_name)
 
     def columned_ping_name_score(self):
-        return (f"{self.ping:>3} {self.get_name()[:32]:32} "
+        off = count_wide_chars(self.get_name())
+        return (f"{self.ping:>3} {self.get_name()[:32]:<{32 - off}} "
                 f"{self.score_or_spec():>10}")
 
     def columned_ping_name_time(self):
-        return (f"{self.ping:>3} {self.get_name()[:32]:32} "
+        off = count_wide_chars(self.get_name())
+        return (f"{self.ping:>3} {self.get_name()[:32]:<{32 - off}} "
                 f"{self.time_or_spec():>10}")
+
+
+def count_wide_chars(string):
+    count = 0
+    for char in string:
+        if unicodedata.east_asian_width(char) == 'W':
+            count += 1
+    return count
 
 
 def get_time_from_score(score):
@@ -102,7 +114,7 @@ def seconds_from_seconds(seconds):
 def minutes_from_seconds(seconds):
     return (
         total_minutes_from_seconds(seconds) -
-        (60 * total_hours_from_seconds(seconds))
+        (MINUTES_IN_A_HOUR * total_hours_from_seconds(seconds))
     )
 
 
@@ -129,8 +141,8 @@ def parse_players_data(players_data):
     for player_data in players_data:
         player_data_array = player_data.rsplit(" ".encode())
         raw_name = player_data.rsplit('"'.encode())[1]
-        player = Player(
-            int(player_data_array[0]), int(player_data_array[1]), raw_name)
+        player = Player(player_data_array[0].decode(),
+                        int(player_data_array[1]), raw_name.decode())
         players.append(player)
     return players
 
